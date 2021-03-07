@@ -1,0 +1,59 @@
+from Adafruit_IO import MQTTClient
+import RPi.GPIO as GPIO
+from time import sleep
+import requests
+
+ADAFRUIT_IO_KEY      = 'aio_JhhX46208cmBAIYtYlO6sDbJKKw6'
+ADAFRUIT_IO_USERNAME = 'msmeher'
+
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BOARD)
+GPIO.setup(8, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(15, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(16, GPIO.OUT, initial=GPIO.LOW)
+
+def connected(client):
+	print('Connected, Listening changes...')
+	client.subscribe('bulb')
+	client.subscribe('Motor')
+
+def disconnected(client):
+	print('Disconnected...')
+	sys.exit(1)
+
+def message(client, feed_id, status):
+	if feed_id == 'Motor':
+		if status == '1':
+			print("Moving Forward")
+			GPIO.output(15, GPIO.HIGH)
+        		GPIO.output(16, GPIO.LOW)
+			sleep(5)
+		        print("Moving Backward")
+			GPIO.output(15, GPIO.LOW)
+        		GPIO.output(16, GPIO.HIGH)
+			sleep(5)
+		elif status == '10':
+			print("Moving Right")
+			sleep(5)
+		elif status == '01':
+			print("Moving Left")
+			sleep(5)
+		else:
+			print("Motor Stopped")
+			GPIO.output(15, GPIO.LOW)
+			GPIO.output(16, GPIO.LOW)
+	elif feed_id == 'bulb':
+                if status == '1':
+                        GPIO.output(8, GPIO.HIGH)
+                        print('Bulb ON, Welcome Again...')
+                else:
+                        GPIO.output(8, GPIO.LOW)
+                        print('Bulb OFF, Thank You...')
+
+client = MQTTClient(ADAFRUIT_IO_USERNAME, ADAFRUIT_IO_KEY)
+
+client.on_connect    = connected
+client.on_disconnect = disconnected
+client.on_message    = message
+client.connect()
+client.loop_blocking()
